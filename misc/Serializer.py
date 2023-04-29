@@ -1,5 +1,4 @@
 import pickle
-import codecs
 
 
 class Serializer:

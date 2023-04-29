@@ -1,6 +1,16 @@
 from dataclasses import dataclass
 
 from environs import Env
+from enum import Enum
+
+
+class SportEnum(Enum):
+    football = 'football'
+    ice_hockey = 'ice-hockey'
+
+
+# must be in format hour:minute
+parsing_start_time = '8:15'
 
 
 @dataclass
@@ -44,7 +54,7 @@ def load_config(path: str = None):
             username=env.str('PROXY_USERNAME'),
             password=env.str('PROXY_PASSWORD'),
             http_port=env.int('PROXY_HTTP_PORT'),
-            socks5_port=env.int('PROXY_SOCKS5_PORT') if not None else ''
+            socks5_port=env.int('PROXY_SOCKS5_PORT') if not None else None
         )
     )
 
