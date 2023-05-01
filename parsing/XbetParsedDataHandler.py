@@ -31,6 +31,8 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
                 match_start_timestamp_date = int(match_r['S'])
                 if self._is_valid_start_date(match_start_timestamp_date) is False:
                     continue
+                if 'хозяев' in match_r["O1"].lower() or 'хозяев' in match_r["O2"].lower():
+                    continue
                 match = self._prepare_match(match_r)
                 matches.append(match)
             except Exception as e:
@@ -48,7 +50,6 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
         match_id = match_r['CI']
         start_at = int(match_r['S'])
         league = match_r["L"]
-
         bookmaker = XbetBookmaker(self._bookmaker_name, match_id)
         match = Match(match_name, bookmaker, start_at)
         match.general = MatchGeneralInfo(
@@ -85,13 +86,9 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
     def _get_coefficients(bet: dict) -> list:
         bet_type_id = int(bet['G'])
         coefficients = []
-        if bet_type_id in [1, 8]:
-            coefficients.append(Coefficient(bet['E'][0][0]['C']))
-            coefficients.append(Coefficient(bet['E'][1][0]['C']))
-            coefficients.append(Coefficient(bet['E'][2][0]['C']))
-        elif bet_type_id in [19, 101]:
-            coefficients.append(Coefficient(bet['E'][0][0]['C']))
-            coefficients.append(Coefficient(bet['E'][1][0]['C']))
+        if bet_type_id in [1, 8, 19, 101]:
+            for b in bet['E']:
+                coefficients.append(Coefficient(b[0]['C']))
         elif bet_type_id == 17:
             for i in range(len(bet['E'][0])):
                 total = Total(bet['E'][0][i]['P'], bet['E'][0][i]['C'], bet['E'][1][i]['P'])

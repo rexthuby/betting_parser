@@ -1,15 +1,14 @@
 import asyncio
 import aiohttp
-from aiohttp import BasicAuth, ContentTypeError
+from aiohttp import ContentTypeError
 from config import SportEnum
 from custom_exception.ParsingError import ParsingError
 from custom_exception.RequestError import RequestError
-from misc.logger import logger
 from parsing.BaseBookmakerParser import BaseBookmakerParser
 from parsing.XbetParsedDataHandler import XbetParsedDataHandler
 from parsing.match.bets.bet import MatchBets
 from parsing.match.match import Match
-from parsing.match.match_result import MatchResult, TeamResult
+from parsing.match.match_result import MatchResult
 
 
 class XbetParser(BaseBookmakerParser):
@@ -46,7 +45,7 @@ class XbetParser(BaseBookmakerParser):
                         try:
                             r: dict = await response.json()
                         except ContentTypeError:
-                            await asyncio.sleep(0.4)
+                            await asyncio.sleep(0.5)
                         else:
                             handler: XbetParsedDataHandler = self._parsed_data_handler
                             return handler.get_bets(r)

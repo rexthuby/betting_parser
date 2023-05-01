@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS matches
 (
     id INT GENERATED ALWAYS AS IDENTITY,
     name VARCHAR(255) NOT NULL,
+    sport VARCHAR(255) NOT NULL,
     bookmaker_name VARCHAR(255) NOT NULL,
     start_at INT NOT NULL,
     bookmaker TEXT NOT NULL,

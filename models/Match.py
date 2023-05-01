@@ -18,8 +18,8 @@ class Match(BaseModel):
         :return: id of inserted match
         """
         conn: Connection = self._connect
-        query = "INSERT INTO matches(name, bookmaker_name, start_at, bookmaker, bets, general)" \
-                " VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+        query = "INSERT INTO matches(name, bookmaker_name, start_at, bookmaker, bets, general, sport)" \
+                " VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
         name = match.name
         bookmaker_name_enum: BookmakerNameEnum = match.bookmaker.name
         bookmaker_name = bookmaker_name_enum.value
@@ -27,7 +27,8 @@ class Match(BaseModel):
         bookmaker = json.dumps(match.bookmaker.get_attributes())
         bets = json.dumps(match.bets.get_attributes()).encode('utf-8').decode('unicode-escape')
         general = json.dumps(match.general.get_attributes()).encode('utf-8').decode('unicode-escape')
-        match_id = int(await conn.fetchval(query, name, bookmaker_name, start_at, bookmaker, bets, general))
+        match_id = int(
+            await conn.fetchval(query, name, bookmaker_name, start_at, bookmaker, bets, general, match.sport_name.value))
         return match_id
 
     @BaseModel._connection_decorator

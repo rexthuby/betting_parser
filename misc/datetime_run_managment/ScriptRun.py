@@ -31,7 +31,7 @@ class ScriptRun(ScriptRunInterface):
         try:
             last_run_date = file_manager.get_value(self.LAST_RUN_KEY)
         except Exception as e:
-            logger.error(e, exc_info=e)
+            logger.warning(e, exc_info=e)
             return None
         if last_run_date is None:
             return None

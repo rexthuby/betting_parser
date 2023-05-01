@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import datetime, timedelta
 
 import asyncpg
@@ -20,7 +21,6 @@ from parsing.match.match_result import MatchResult
 class XbetController(BaseBookmakerController):
     def __init__(self, match_model_db: match_model = MatchModel(), parser: XbetParser = XbetParser()):
         super().__init__(parser, match_model_db)
-
     async def start_parse(self, sport: SportEnum):
         parser: XbetParser = self._parser
         try:
@@ -32,17 +32,27 @@ class XbetController(BaseBookmakerController):
         else:
             for match in matches:
                 try:
-                    await self.__parse_match(match)
+                    match.sport_name = sport
+                    await self._parse_match(match)
                 except Exception as e:
                     logger.critical(e, exc_info=e)
 
-    async def __parse_match(self, match: Match):
+    async def _parse_match(self, match: Match):
         parser: XbetParser = self._parser
         bookmaker: XbetBookmaker = match.bookmaker
-        match.bets = await parser.get_match_bets(bookmaker.match_id)
+        try:
+            match.bets = await parser.get_match_bets(bookmaker.match_id)
+        except RequestError as e:
+            if match.match_start_date > datetime.now().timestamp():
+                logger.warning(e, exc_info=e)
+                scheduler.add_job(self._parse_match, 'date', args=[match],
+                                  run_date=datetime.fromtimestamp(match.match_start_date))
+            else:
+                logger.error(e, exc_info=e)
+            return
         match_id = await self._match_model.insert_match_without_result(match)
         scheduler.add_job(self.parse_match_result, 'date', args=[match_id],
-                          run_date=datetime.fromtimestamp(match.general.start) + timedelta(hours=1, minutes=30))
+                          run_date=datetime.fromtimestamp(match.general.start) + timedelta(hours=2))
 
     async def parse_match_result(self, match_db_id: int):
         try:
@@ -69,10 +79,10 @@ class XbetController(BaseBookmakerController):
             logger.error(e, exc_info=e)
 
     def _process_match_start_age(self, start_timestamp: int, match_db_id: int):
-        if datetime.fromtimestamp(start_timestamp) + timedelta(hours=4) < datetime.now() is False:
+        if datetime.fromtimestamp(start_timestamp) + timedelta(hours=5) < datetime.now() is False:
             raise WaitingTimeError(
                 f'The duration of waiting for the result of the match has expired. '
                 f'Match start time: {datetime.fromtimestamp(start_timestamp)}. '
                 f'Time of the last match result parsing: {datetime.now()}')
         scheduler.add_job(self.parse_match_result, 'date', args=[match_db_id],
-                          run_date=datetime.now() + timedelta(minutes=15))
+                          run_date=datetime.now() + timedelta(minutes=45))

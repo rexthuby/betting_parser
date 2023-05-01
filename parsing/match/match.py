@@ -1,7 +1,5 @@
-from abc import ABC, abstractmethod
-
+from config import SportEnum
 from parsing.match.bets.bet import MatchBets
-from parsing.match.bookmakers.XbetBookmaker import XbetBookmaker
 from parsing.match.bookmakers.match_bookmaker import MatchBookmaker, match_bookmaker
 from parsing.match.match_general_info import MatchGeneralInfo
 from parsing.match.match_result import MatchResult
@@ -12,6 +10,7 @@ class Match:
         self.name = name
         self.bookmaker = bookmaker
         self.match_start_date = match_start_date
+        self._sport = None
         self._general = None
         self._bets = None
         self._result = None
@@ -19,6 +18,14 @@ class Match:
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def sport_name(self) -> SportEnum:
+        return self._sport
+
+    @sport_name.setter
+    def sport_name(self, sport_name: SportEnum):
+        self._sport = sport_name
 
     @name.setter
     def name(self, name: str):
@@ -75,6 +82,7 @@ class Match:
             'name': self._name,
             'match_start_date': self._match_start_date,
             'bookmaker': self._bookmaker.get_attributes(),
+            'sport': None if self._sport is None else self._sport.value,
             'general': None if self._general is None else self._general.get_attributes(),
             'bets': None if self._bets is None else self._bets.get_attributes(),
             'result': None if self._result is None else self._result.get_attributes()

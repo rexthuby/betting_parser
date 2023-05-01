@@ -1,5 +1,4 @@
 import datetime
-
 from controllers.MainController import MainController
 from controllers.XbetController import XbetController
 from misc.datetime_run_managment.ScriptRun import ScriptRun
@@ -35,7 +34,7 @@ async def main():
             next_run = script_run_manager.get_next_run()
             if next_run is None or next_run + datetime.timedelta(minutes=30) < datetime.datetime.now():
                 next_run: datetime = script_run_manager.set_last_run(datetime.datetime.now())
-            scheduler.add_job(run_planned_process, 'date', run_date=next_run + datetime.timedelta(minutes=1))
+            scheduler.add_job(run_planned_process, 'date', run_date=next_run + datetime.timedelta(minutes=2))
         except Exception as e:
             logger.critical('Script did not run.\n' + str(e), exc_info=e)
 

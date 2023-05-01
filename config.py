@@ -9,10 +9,6 @@ class SportEnum(Enum):
     ice_hockey = 'ice-hockey'
 
 
-# must be in format hour:minute
-parsing_start_time = '8:15'
-
-
 @dataclass
 class DbConfig:
     host: str
