@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+from misc.datetime_run_managment.FileKeyError import FileKeyError
 from misc.datetime_run_managment.ScriptRunInterface import ScriptRunInterface
 from misc.datetime_run_managment.FileManager import FileManager
 from misc.datetime_run_managment.KeyValueManagerInterface import KeyValueManagerInterface
@@ -30,6 +31,9 @@ class ScriptRun(ScriptRunInterface):
         file_manager = self._key_value_manager
         try:
             last_run_date = file_manager.get_value(self.LAST_RUN_KEY)
+        except FileKeyError as e:
+            logger.info(e, exc_info=e)
+            return None
         except Exception as e:
             logger.warning(e, exc_info=e)
             return None

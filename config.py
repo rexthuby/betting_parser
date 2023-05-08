@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import timedelta
 
 from environs import Env
 from enum import Enum
@@ -7,6 +8,14 @@ from enum import Enum
 class SportEnum(Enum):
     football = 'football'
     ice_hockey = 'ice-hockey'
+
+    def max_time_duration(self) -> timedelta:
+        if self == SportEnum.football:
+            return timedelta(minutes=165)
+        elif self == SportEnum.ice_hockey:
+            return timedelta(minutes=120)
+        else:
+            raise ValueError("Invalid sport type")
 
 
 @dataclass

@@ -36,9 +36,9 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
                 match = self._prepare_match(match_r)
                 matches.append(match)
             except Exception as e:
-                logger.error('Не правильная обработка данных от 1xber', exc_info=e)
+                logger.error('Incorrect processing of data from 1xbet', exc_info=e)
         if len(matches) < 1:
-            raise ParsingError('Масив матчей пуст')
+            raise ParsingError('Matches array is empty')
         return matches
 
     def _prepare_match(self, match_r) -> Match:
@@ -65,7 +65,7 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
                 bet_type_id = bet['G']
                 bet_name_enum = self._get_key_by_value(self._bet_name_enum_to_id, bet_type_id)
                 if bet_name_enum is None:
-                    raise ParsingError('В BetNameEnum нет нужного значения value')
+                    raise ParsingError(f'BetNameEnum does not have the desired value. bet_name_enum:{bet_name_enum}')
                 bet_name_enum: BetNameEnum
                 coefficients = self._get_coefficients(bet)
                 bets.append(Bet(bet_name_enum, coefficients))
@@ -94,7 +94,7 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
                 total = Total(bet['E'][0][i]['P'], bet['E'][0][i]['C'], bet['E'][1][i]['P'])
                 coefficients.append(total)
         else:
-            raise ParsingError(f'Нет обработки bet_type_id:{bet_type_id}\nbet:\n{bet}')
+            raise ParsingError(f'No processing bet_type_id:{bet_type_id}\nbet:\n{bet}')
         return coefficients
 
     def _get_present_bets_in_match(self, r) -> list:
@@ -105,11 +105,11 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
                 bets_in_match.append(b)
         return bets_in_match
 
-    def get_match_result(self, r) -> MatchResult | None:
+    def get_match_result(self, r: str) -> MatchResult | None:
         soup = BeautifulSoup(r, 'lxml')
         all_li_info_div = soup.find(class_='old-sections old-layout__sections')
         if all_li_info_div is None:
-            return None
+            raise ParsingError()
         if self._check_match_end(soup) is False:
             return None
         base_table = all_li_info_div.find(class_='old-sections__item js-item-2')
@@ -140,3 +140,22 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
         if match_status == 'Матч состоялся':
             return True
         return False
+
+    @staticmethod
+    def get_forced_match_result(r: str) -> MatchResult:
+        soup = BeautifulSoup(r, 'lxml')
+        all_li_info_div = soup.find(class_='old-sections old-layout__sections')
+        if all_li_info_div is None:
+            raise ParsingError()
+        base_table = all_li_info_div.find(class_='old-sections__item js-item-2')
+        table_body: Tag = base_table.tbody
+        all_tr_list = table_body.find_all('tr')
+        tr_list: list[Tag] = [all_tr_list[1], all_tr_list[2]]
+        team_results = []
+        for tr in tr_list:
+            tr: Tag
+            all_td = tr.find_all('td')
+            team_name = all_td[0].span.get_text().strip()
+            team_score = int(all_td[1].span.get_text().strip())
+            team_results.append(TeamResult(team_name, team_score))
+        return MatchResult(team_results)

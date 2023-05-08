@@ -15,6 +15,14 @@ class BaseBookmakerParser:
     _proxy_auth = BasicAuth(_config.proxy.username, _config.proxy.password)
 
     def __init__(self, parsed_data_handler: base_parsed_data_handler):
+        self.parsed_data_handler = parsed_data_handler
+
+    @property
+    def parsed_data_handler(self):
+        return self._parsed_data_handler
+
+    @parsed_data_handler.setter
+    def parsed_data_handler(self, parsed_data_handler: base_parsed_data_handler):
         self._parsed_data_handler = parsed_data_handler
 
 

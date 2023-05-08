@@ -1,11 +1,8 @@
 from aiohttp import ClientConnectorError
 
 from config import SportEnum
-from controllers.BaseBookmakerController import BaseBookmakerController
+from controllers.BaseBookmakerController import BaseBookmakerController, base_bookmaker_controller
 from misc.logger import logger
-from typing import TypeVar
-
-base_bookmaker_controller = TypeVar('base_bookmaker_controller', bound=BaseBookmakerController)
 
 
 class MainController:

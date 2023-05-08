@@ -29,7 +29,7 @@ class BaseParsedDataHandler:
         return True
 
     @staticmethod
-    def find_enum_attr(desired_value, enum_class: enum.EnumType) -> Any | None:
+    def find_enum_attr(desired_value: Any, enum_class: enum.EnumType) -> enum.Enum | Any | None:
         for member in enum_class.__members__.values():
             if member.value == desired_value:
                 return member
