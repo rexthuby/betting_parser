@@ -40,7 +40,7 @@ class XbetParser(BaseBookmakerParser):
               f'GroupEvents=true&allEventsGroupSubGames=true&countevents=250&marketType=1&isNewBuilder=true'
         async with aiohttp.ClientSession(headers=self._header) as session:
             try:
-                for n in range(5):
+                for n in range(9):
                     async with session.get(url, proxy=self._proxy, proxy_auth=self._proxy_auth) as response:
                         try:
                             r: dict = await response.json()
@@ -89,7 +89,7 @@ class XbetParser(BaseBookmakerParser):
             finally:
                 await session.close()
 
-    async def get_forced_match_result(self, match_result_url_part: str) -> MatchResult:
+    async def get_forced_match_result(self, match_result_url_part: str) -> MatchResult | None:
         link = f'https://eventsstat.com/statisticpopup/game/1/{match_result_url_part}/main?ln=ru'
         async with aiohttp.ClientSession(headers=self._header) as session:
             try:

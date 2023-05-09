@@ -109,7 +109,7 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
         soup = BeautifulSoup(r, 'lxml')
         all_li_info_div = soup.find(class_='old-sections old-layout__sections')
         if all_li_info_div is None:
-            raise ParsingError()
+            return None
         if self._check_match_end(soup) is False:
             return None
         base_table = all_li_info_div.find(class_='old-sections__item js-item-2')
@@ -142,11 +142,11 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
         return False
 
     @staticmethod
-    def get_forced_match_result(r: str) -> MatchResult:
+    def get_forced_match_result(r: str) -> MatchResult | None:
         soup = BeautifulSoup(r, 'lxml')
         all_li_info_div = soup.find(class_='old-sections old-layout__sections')
         if all_li_info_div is None:
-            raise ParsingError()
+            return None
         base_table = all_li_info_div.find(class_='old-sections__item js-item-2')
         table_body: Tag = base_table.tbody
         all_tr_list = table_body.find_all('tr')

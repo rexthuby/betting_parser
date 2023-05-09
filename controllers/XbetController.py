@@ -8,6 +8,8 @@ from config import SportEnum
 from controllers.BaseBookmakerController import BaseBookmakerController
 from custom_exception.RequestError import RequestError
 from custom_exception.WaitingTimeError import WaitingTimeError
+from misc.datetime_run_managment.ScriptRun import ScriptRun
+from misc.datetime_run_managment.ScriptRunInterface import ScriptRunInterface
 from misc.logger import logger
 from misc.scheduler import scheduler
 from models.Match import Match as MatchModel, match_model
@@ -27,9 +29,13 @@ class XbetController(BaseBookmakerController):
         try:
             matches = await parser.get_matches(sport)
         except RequestError as e:
-            logger.error(e, exc_info=e)
-            scheduler.add_job(self.start_parse, 'date', args=[sport],
-                              run_date=datetime.now() + timedelta(minutes=30))
+            script_run_manager: ScriptRunInterface = ScriptRun()
+            if script_run_manager.get_last_run() + timedelta(hours=1) < datetime.now():
+                logger.critical(e, exc_info=e)
+            else:
+                logger.error(e, exc_info=e)
+                scheduler.add_job(self.start_parse, 'date', args=[sport],
+                                  run_date=datetime.now() + timedelta(minutes=5))
         else:
             for match in matches:
                 try:
@@ -63,23 +69,29 @@ class XbetController(BaseBookmakerController):
             result_url_part: str = bookmaker_dict['result_url_part']
             start_timestamp: int = match_model_resp['start_at']
             match_model: MatchModel = self.match_model
+
             if result_url_part is None:
                 bookmaker = XbetBookmaker(BookmakerNameEnum.xbet, bookmaker_dict['match_id'])
                 result_url_part = await parser.get_match_result_url_part(bookmaker.match_id)
-                if result_url_part is None:
+                if result_url_part is None or len(result_url_part) < 3:
                     self._process_match_result_part_age(start_timestamp, match_db_id)
                     return
                 bookmaker.match_result_url_part = result_url_part
                 await match_model.update_bookmaker(match_db_id, bookmaker)
+
             result = await parser.get_match_result(result_url_part)
             if result is None:
                 sport_enum: SportEnum = parser.parsed_data_handler.find_enum_attr(match_model_resp['sport'], SportEnum)
                 if self._is_need_force_result(sport_enum, start_timestamp):
                     result = await parser.get_forced_match_result(result_url_part)
+                    if result is None:
+                        logger.info(f'Can\'t take match result. Match id:{match_db_id}')
+                        return
                 else:
                     scheduler.add_job(self.parse_match_result, 'date', args=[match_db_id],
                                       run_date=datetime.now() + timedelta(minutes=45))
                     return
+
             result: MatchResult
             await match_model.update_result(match_db_id, result)
         except Exception as e:
@@ -87,14 +99,15 @@ class XbetController(BaseBookmakerController):
 
     def _process_match_result_part_age(self, start_timestamp: int, match_db_id: int):
         if datetime.fromtimestamp(start_timestamp) + timedelta(hours=2) > datetime.now():
-            raise WaitingTimeError(
-                f'The duration of waiting for the result part of the match has expired. '
-                f'Match start time: {datetime.fromtimestamp(start_timestamp)}. '
-                f'Time of the last match result parsing: {datetime.now()}')
-        scheduler.add_job(self.parse_match_result, 'date', args=[match_db_id],
-                          run_date=datetime.now() + timedelta(minutes=45))
+            scheduler.add_job(self.parse_match_result, 'date', args=[match_db_id],
+                              run_date=datetime.now() + timedelta(minutes=20))
+            return
+        raise WaitingTimeError(
+            f'The duration of waiting for the result part of the match has expired. '
+            f'Match start time: {datetime.fromtimestamp(start_timestamp)}. '
+            f'Time of the last match result parsing: {datetime.now()}')
 
     def _is_need_force_result(self, sport: SportEnum, start: int) -> bool:
-        if start + sport.max_time_duration().seconds > datetime.now().timestamp():
+        if start + sport.max_time_duration().total_seconds() > datetime.now().timestamp():
             return False
         return True
