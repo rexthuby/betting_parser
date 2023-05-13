@@ -15,7 +15,7 @@ def get_apscheduler_logger() -> logging.Logger:
     apscheduler_logger.setLevel(logging.DEBUG)
 
     file_handler = logging.FileHandler('logs/apscheduler.log')
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.WARNING)
 
     formatter = logging.Formatter('[%(levelname)s] - %(asctime)s - %(name)s - %(message)s')
     file_handler.setFormatter(formatter)

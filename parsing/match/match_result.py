@@ -1,5 +1,6 @@
 from parsing.match.MatchAttributesInterface import MatchAttributesInterface
 
+
 class TeamResult:
 
     def __init__(self, team_name: str, score: int):
@@ -30,7 +31,7 @@ class MatchResult(MatchAttributesInterface):
 
     def __init__(self, team_results: list[TeamResult]):
         self.team_results = team_results
-
+        self._time_score = None
     @property
     def team_results(self):
         return self._team_results
@@ -39,8 +40,21 @@ class MatchResult(MatchAttributesInterface):
     def team_results(self, team_results: list[TeamResult]):
         self._team_results = team_results
 
+    @property
+    def time_score(self):
+        return self._time_score
+
+    @time_score.setter
+    def time_score(self, time_score: str):
+        self.time_score_validate(time_score)
+        self._time_score = time_score
+
+    def time_score_validate(self, time_score):
+        if '(' not in time_score or ')' not in time_score:
+            raise ValueError(f'time_score is not pass validation. time_score:{time_score}')
+
     def get_attributes(self) -> dict:
         result = []
         for team in self.team_results:
             result.append(team.get_attributes_dict())
-        return {'result': result}
+        return {'result': result, 'time_score': self.time_score}

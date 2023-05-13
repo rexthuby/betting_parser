@@ -50,7 +50,8 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
         match_id = match_r['CI']
         start_at = int(match_r['S'])
         league = match_r["L"]
-        bookmaker = XbetBookmaker(self._bookmaker_name, match_id)
+        league_id = match_r["LI"]
+        bookmaker = XbetBookmaker(self._bookmaker_name, match_id, league_id)
         match = Match(match_name, bookmaker, start_at)
         match.general = MatchGeneralInfo(
             MatchTeams([Team(team_1_name, team_1_img), Team(team_2_name, team_2_img)]),
@@ -105,57 +106,29 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
                 bets_in_match.append(b)
         return bets_in_match
 
-    def get_match_result(self, r: str) -> MatchResult | None:
-        soup = BeautifulSoup(r, 'lxml')
-        all_li_info_div = soup.find(class_='old-sections old-layout__sections')
-        if all_li_info_div is None:
-            return None
-        if self._check_match_end(soup) is False:
-            return None
-        base_table = all_li_info_div.find(class_='old-sections__item js-item-2')
-        table_body: Tag = base_table.tbody
-        all_tr_list = table_body.find_all('tr')
-        tr_list: list[Tag] = [all_tr_list[1], all_tr_list[2]]
-        team_results = []
-        for tr in tr_list:
-            tr: Tag
-            all_td = tr.find_all('td')
-            team_name = all_td[0].span.get_text().strip()
-            team_score = int(all_td[1].span.get_text().strip())
-            team_results.append(TeamResult(team_name, team_score))
-        return MatchResult(team_results)
+    def get_match_result(self, r: dict, bookmaker: XbetBookmaker, general: MatchGeneralInfo) -> MatchResult | None:
+        result = None
+        for champ in r['sport'][0]['champs']:
+            if not champ['id'] == bookmaker.league_id:
+                continue
 
-    @staticmethod
-    def _check_match_end(soup: BeautifulSoup) -> bool:
-        scoreboard = soup.find(class_='old-scoreboard old-layout__scoreboard old-scoreboard--big')
-        if scoreboard is None:
-            return False
-        score_info = scoreboard.find(
-            class_='old-scoreboard__info old-scoreboard__info--main old-scoreboard-info old-scoreboard-info--main')
-        match_status_div = score_info.find(
-            class_='old-scoreboard-info__item')
-        if match_status_div is None:
-            return False
-        match_status = match_status_div.get_text().strip()
-        if match_status == 'Матч состоялся':
-            return True
-        return False
+            for game in champ['games']:
+                teams = general.teams.teams
+                team_1: Team = teams[0]
+                game_team_1_name = game['opp1']
+                game_team_2_name = game['opp2']
 
-    @staticmethod
-    def get_forced_match_result(r: str) -> MatchResult | None:
-        soup = BeautifulSoup(r, 'lxml')
-        all_li_info_div = soup.find(class_='old-sections old-layout__sections')
-        if all_li_info_div is None:
-            return None
-        base_table = all_li_info_div.find(class_='old-sections__item js-item-2')
-        table_body: Tag = base_table.tbody
-        all_tr_list = table_body.find_all('tr')
-        tr_list: list[Tag] = [all_tr_list[1], all_tr_list[2]]
-        team_results = []
-        for tr in tr_list:
-            tr: Tag
-            all_td = tr.find_all('td')
-            team_name = all_td[0].span.get_text().strip()
-            team_score = int(all_td[1].span.get_text().strip())
-            team_results.append(TeamResult(team_name, team_score))
-        return MatchResult(team_results)
+                if not team_1.name == game_team_1_name:
+                    continue
+
+                score = game['score'].split(':', 2)
+                t_1 = TeamResult(game_team_1_name, int(score[0]))
+                t_2 = TeamResult(game_team_2_name, int(score[1].split(' ')[0]))
+                result = MatchResult([t_1, t_2])
+                result.time_score = game['score'].split(' ', 2)[1]
+
+            if result is None:
+                continue
+            break
+
+        return result

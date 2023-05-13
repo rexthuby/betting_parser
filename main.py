@@ -13,7 +13,8 @@ async def run_planned_process():
     try:
         script_run_manager: ScriptRunInterface = ScriptRun()
         script_run_manager.set_last_run(datetime.datetime.now())
-        scheduler.add_job(run_planned_process, 'date', run_date=script_run_manager.get_next_run())
+        scheduler.add_job(run_planned_process, 'date', run_date=script_run_manager.get_next_run(),
+                          misfire_grace_time=60 * 60)
         main_controller = MainController([XbetController()])
         await main_controller.parse_bookmakers()
     except Exception as e:

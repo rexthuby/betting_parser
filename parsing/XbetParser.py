@@ -7,7 +7,9 @@ from custom_exception.RequestError import RequestError
 from parsing.BaseBookmakerParser import BaseBookmakerParser
 from parsing.XbetParsedDataHandler import XbetParsedDataHandler
 from parsing.match.bets.bet import MatchBets
+from parsing.match.bookmakers.XbetBookmaker import XbetBookmaker
 from parsing.match.match import Match
+from parsing.match.match_general_info import MatchGeneralInfo
 from parsing.match.match_result import MatchResult
 
 
@@ -53,56 +55,31 @@ class XbetParser(BaseBookmakerParser):
             finally:
                 await session.close()
 
-    async def get_match_result_url_part(self, game_id: int) -> str | None:
-        url = f'https://1xbet.com/SiteService/StatisticStatuses?constId={game_id}'
+    async def get_match_result(self, search_text: str, general: MatchGeneralInfo,
+                               bookmaker: XbetBookmaker) -> MatchResult | None:
+        start_timestamp = general.start
+        dateFrom = start_timestamp - 2000
+        dateTo = start_timestamp + 2000
+        if len(search_text) > 50:
+            try:
+                search_text = search_text.split('-')[0]
+            except:
+                search_text = search_text[:50]
+        link = f'https://1xbet.com/service-api/result/web/api/v1/search?text={search_text}&dateFrom={dateFrom}&dateTo={dateTo}&lng=ru&country=169'
         async with aiohttp.ClientSession(headers=self._header) as session:
             try:
                 for n in range(5):
-                    async with session.get(url, proxy=self._proxy, proxy_auth=self._proxy_auth) as response:
+                    async with session.get(link, proxy=self._proxy, proxy_auth=self._proxy_auth) as response:
                         try:
                             r: dict = await response.json()
-                        except ContentTypeError:
-                            await asyncio.sleep(0.4)
-                        else:
-                            return r['I']
-                raise RequestError('Failed to connect to 1xbet')
-            finally:
-                await session.close()
-
-    async def get_match_result(self, match_result_url_part: str) -> MatchResult | None:
-        link = f'https://eventsstat.com/statisticpopup/game/1/{match_result_url_part}/main?ln=ru'
-        async with aiohttp.ClientSession(headers=self._header) as session:
-            try:
-                for n in range(5):
-                    async with session.get(link, proxy=self._proxy, proxy_auth=self._proxy_auth) as response:
-                        try:
-                            r = await response.text()
+                            if len(r) < 1:
+                                return None
                         except ContentTypeError:
                             await asyncio.sleep(0.4)
                         else:
                             try:
                                 handler: XbetParsedDataHandler = self._parsed_data_handler
-                                return handler.get_match_result(r)
-                            except ParsingError:
-                                continue
-                raise RequestError('Failed to connect to 1xbet')
-            finally:
-                await session.close()
-
-    async def get_forced_match_result(self, match_result_url_part: str) -> MatchResult | None:
-        link = f'https://eventsstat.com/statisticpopup/game/1/{match_result_url_part}/main?ln=ru'
-        async with aiohttp.ClientSession(headers=self._header) as session:
-            try:
-                for n in range(5):
-                    async with session.get(link, proxy=self._proxy, proxy_auth=self._proxy_auth) as response:
-                        try:
-                            r: str = await response.text()
-                        except ContentTypeError:
-                            await asyncio.sleep(0.4)
-                        else:
-                            try:
-                                handler: XbetParsedDataHandler = self._parsed_data_handler
-                                return handler.get_forced_match_result(r)
+                                return handler.get_match_result(r, bookmaker, general)
                             except ParsingError:
                                 continue
                 raise RequestError('Failed to connect to 1xbet')
