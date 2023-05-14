@@ -11,9 +11,9 @@ class SportEnum(Enum):
 
     def max_game_duration(self) -> timedelta:
         if self == SportEnum.football:
-            return timedelta(minutes=200)
+            return timedelta(minutes=300)
         elif self == SportEnum.ice_hockey:
-            return timedelta(minutes=140)
+            return timedelta(minutes=250)
         else:
             raise ValueError("Invalid sport type")
 

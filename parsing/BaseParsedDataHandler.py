@@ -35,5 +35,12 @@ class BaseParsedDataHandler:
                 return member
         return None
 
+    @staticmethod
+    def check_substrings_in_string(string: str, substrings: tuple):
+        for substring in substrings:
+            if substring in string:
+                return True
+        return False
+
 
 base_parsed_data_handler = TypeVar('base_parsed_data_handler', bound=BaseParsedDataHandler)

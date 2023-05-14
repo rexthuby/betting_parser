@@ -19,6 +19,8 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
                             BetNameEnum.double_chance: 8, BetNameEnum.total: 17,
                             BetNameEnum.both_goal: 19}
 
+    _forbidden_words = ("хозяев", "команды")
+
     def __init__(self):
         super().__init__(BookmakerNameEnum.xbet)
 
@@ -31,7 +33,8 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
                 match_start_timestamp_date = int(match_r['S'])
                 if self._is_valid_start_date(match_start_timestamp_date) is False:
                     continue
-                if 'хозяев' in match_r["O1"].lower() or 'хозяев' in match_r["O2"].lower():
+                if self.check_substrings_in_string(match_r["O1"].lower(), self._forbidden_words) or \
+                        self.check_substrings_in_string(match_r["O2"].lower(), self._forbidden_words):
                     continue
                 match = self._prepare_match(match_r)
                 matches.append(match)
@@ -108,24 +111,25 @@ class XbetParsedDataHandler(BaseParsedDataHandler):
 
     def get_match_result(self, r: dict, bookmaker: XbetBookmaker, general: MatchGeneralInfo) -> MatchResult | None:
         result = None
-        for champ in r['sport'][0]['champs']:
-            if not champ['id'] == bookmaker.league_id:
-                continue
-
-            for game in champ['games']:
-                teams = general.teams.teams
-                team_1: Team = teams[0]
-                game_team_1_name = game['opp1']
-                game_team_2_name = game['opp2']
-
-                if not team_1.name == game_team_1_name:
+        for sport in r['sport']:
+            for champ in sport['champs']:
+                if not champ['id'] == bookmaker.league_id:
                     continue
 
-                score = game['score'].split(':', 2)
-                t_1 = TeamResult(game_team_1_name, int(score[0]))
-                t_2 = TeamResult(game_team_2_name, int(score[1].split(' ')[0]))
-                result = MatchResult([t_1, t_2])
-                result.time_score = game['score'].split(' ', 2)[1]
+                for game in champ['games']:
+                    teams = general.teams.teams
+                    team_1: Team = teams[0]
+                    game_team_1_name = game['opp1']
+                    game_team_2_name = game['opp2']
+
+                    if not team_1.name == game_team_1_name:
+                        continue
+
+                    score = game['score'].split(':', 2)
+                    t_1 = TeamResult(game_team_1_name, int(score[0]))
+                    t_2 = TeamResult(game_team_2_name, int(score[1].split(' ')[0]))
+                    result = MatchResult([t_1, t_2])
+                    result.time_score = game['score'].split(' ', 2)[1]
 
             if result is None:
                 continue
